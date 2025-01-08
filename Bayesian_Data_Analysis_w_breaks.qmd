@@ -1,0 +1,656 @@
+---
+title: "Bayesian Data Analysis"
+author: "Martial Foegel"
+format: 
+  beamer:
+    incremental: true 
+    fontsize: "10pt"
+editor: visual
+theme: metropolis
+date: 07/06/2024
+institute: Laboratoire de Linguistique Formelle
+bibliography: references.bib
+link-citations: true
+slide-level: 5
+---
+
+# What is Bayesian data analysis ?
+
+## Table of contents {.nonincremental}
+
+-   Definition
+    -   A different approach to statistics and data analysis
+-   Bayes Theorem
+    -   The categorical version
+    -   The continuous version
+-   Priors
+-   The likelihood
+-   The Evidence or Marginal likelihood
+-   How to get to the posterior...
+    -   ... Using conjugate distributions
+    -   ... Using sampling
+        -   Markov Chain Monte Carlo sampling
+        -   Metropolis algorithm
+        -   Other MCMC algorithm
+-   The posterior
+-   Conclusion
+
+## Definition
+
+It is a statistical method based on a Bayesian interpretation of probability. In this case probability expresses the belief in an event. The initial degree of belief in an event can be based on knowledge or on previous events. Using Bayes' theorem, this belief can be updated with new data to produce a new, updated belief in that event.
+
+. . .
+
+\vspace{1em}
+
+> Example: the weather for May
+
+<!--# Let's immagine you think that we will get a mostly sunny month of May because historically, in this region of the world, May has been a month wih rather fair weather. If on the first few days it happens to be raining, and the forecast for the forseeable future is pessimistic about the weather, you may update your belief and think that maybe we may be in for a rainy month of May -->
+
+## A different approach to statistics and data analysis
+
+<!--# just like euclide geometry is one approach to geometry amongst others (riemann's, or complex geometry for exemple). In statistics other approach to statistical inferences also exist like Likelihoodist statistics, Fisherian statistics, Information theory and Decision theory -->
+
+### The frequentist approach
+
+Based on "Long run frequency":
+
+. . .
+
+-   Take a sample from the population, where the population parameters considered "fixed"; <!--# meaning there is one true value -->
+-   Get some centrality and dispersion parameters from that sample; <!--#  -->
+-   Use them to construct Confidence Intervals with the interpretation that we have a certain amount of confidence (usually 95%) that the true centrality parameter (*i.e.* the population centrality parameter) is within that interval; <!--# If we repeat the experiment, we are condident that 95% of the time, the true/population mean will fall within the CoI range. And the more repetition you make, the closer you are to the true mean -->
+-   Accept or reject a null hypothesis $H_0$ using "*p*-value", leading to a commonly dichotomized interpretation of the results.[^1]<!--# probability of observing the acquired or a more extreme result in a hypothetical series of repeats of the experiment (i.e., sampling distribution), given that the null hypothesis is true -->
+
+[^1]: @hespanhol2019
+
+### The Bayesian approach
+
+Based on the Bayesian interpretation of probability: <!--# Won't break it down and summarize it the same way as frequentist approach as it is the topic of today's presentation, but here is a few differences-->
+
+. . .
+
+-   Parameters from the population are viewed as random variables with distributions; <!--# so we can test all the possible value a particular paramter can take -->
+-   Combine both prior belief about the population and the data to get some updated distribution of the population parameters;
+-   The interest is in the updated parameter distribution, and the aim of the approach is often to describe said distribution;
+-   To that end centrality and dispersion statistic can be used. <!--# mean, mode --> Most prevalent is the Credible Interval (equal tail or HPD CrI), with the interpretation that given the data, there is a certain amount of probability (usually 95%) that the true population parameter lies within that interval.[^2]<!--# there is a 95% probability that the true (unknown) effect estimate would lie within the interval, given the evidence provided by the observed data -->
+
+[^2]: @hespanhol2019
+
+## Bayes Theorem
+
+::: callout-important
+## Bayes Theorem:
+
+$$
+P(A|B) = \frac{P(B|A)P(A)}{P(B)}
+$$
+:::
+
+#### A quick numerical example
+
+::::: columns
+::: {.column width="40%"}
+|           | $A$ | $\bar{A}$ | Total |
+|-----------|-----|-----------|-------|
+| $B$       | 5   | 3         | 8     |
+| $\bar{B}$ | 2   | 8         | 10    |
+| Total     | 7   | 11        | 18    |
+:::
+
+::: {.column width="60%"}
+$P(A|B) = \frac{5}{8}$
+
+. . .
+
+\vspace{1em}
+
+$\frac{P(B|A)P(A)}{P(B)} = \frac{\frac{5}{7} \times \frac{7}{18}}{8/18} = \frac{5}{18} \times \frac{18}{8} = \frac{5}{8}$
+
+. . .
+
+\vspace{1em}
+
+$P(B) = \sum_{j = 1}^J P(B|A_j)P(A_j)$ \vspace{1em}
+
+$P(B) = P(B|A)P(A) + P(B|\bar{A})P(\bar{A})$ \vspace{1em}
+
+$P(B) = \frac{5}{7} \times \frac{7}{18} + \frac{3}{11} \times \frac{11}{18} = \frac{5}{18} + \frac{3}{18} = \frac{8}{18}$
+:::
+:::::
+
+#### The categorical version
+
+Let $\theta$ be a categorical parameter with $j$ classes, and $y$ taking $L$ different values or being continuous, then the Bayes Theorem for categorical parameter is:
+
+$$
+p(\theta_j|y) = \frac{p(y|\theta_j)p(\theta_j)}{\sum_{j = 1}^J p(y|\theta_j)p(\theta_j)}
+$$
+
+#### The continuous version
+
+Let $\theta$ be a continuous parameter, and $\mathbf{y} = y_1, \dots, y_n$ be an i.i.d. sample<!--# Independent and identically distributed random variables -->, then the Bayes theorem for continuous parameters is:
+
+$$
+p(\theta|\mathbf{y}) = \frac{L(\mathbf{y}|\theta)p(\theta)}{\int L(\mathbf{y}|\theta)p(\theta)d\theta}
+$$
+
+. . .
+
+Terminology :
+
+$$
+Posterior = \frac{Likelihood \cdot Prior}{Evidence}
+$$
+
+. . .
+
+And all of this can be generalized for multiple parameters $\boldsymbol{\theta} = \theta_1, \dots, \theta_k$.
+
+## Priors
+
+A prior ($p(\theta)$) is the prior probability distribution of a parameter before taking into account new information. The parameter can be a direct parameter of a model (*e.g.* the mean or the proportion of successes) or a latent one. In that sense, priors can have priors.
+
+. . .
+
+When the prior distribution is determined using historical data, prior knowledge or from experts opinion, those priors are called informative. Priors can be more or less informative, and this informativeness is relative to the question asked.
+
+. . .
+
+Recommendations about prior choice are available online.[^3]
+
+[^3]: @vehtari
+
+\vspace{1em}
+
+> Example using Response/Reading Time (mean of 300ms, heavy right tail)[^4]
+
+[^4]: @lindeløv2024
+
+### Non-informative prior
+
+::::: columns
+::: {.column width="50%"}
+```{r}
+runif(1000, min = -1000, max = 1000) |> 
+  hist()
+```
+:::
+
+::: {.column width="50%"}
+```{r}
+rnorm(1000, mean = 0, sd = 1000) |> 
+  hist()
+```
+:::
+:::::
+
+-   If the software allows for a default prior, it will usually be a non-informative one;
+-   A flat prior doesn't necessarily mean a non-informative prior;
+-   Provide the same results as simpler frequentist methods;
+-   Increased type 1 and type M error rates.[^5]
+
+[^5]: @lemoine2019
+
+### Weakly-informative prior
+
+Allow for an analysis that is a compromise between the information available about the parameters, and the actual data. The aim is to align the results with existing knowledge and prevent extreme estimates.
+
+```{r, fig.height=4}
+rnorm(1000, mean = 300, sd = 50) |> 
+  hist()
+```
+
+. . .
+
+Doesn't have to come from a very elaborate standpoint, just taking into account that the data cannot be negative is already a form of information that will help with the choice of a prior distribution.
+
+### Strongly-informative prior
+
+With this type of prior, the prior distribution will most likely overshadow the data acquired.
+
+```{r, fig.height=4}
+library(brms)
+rshifted_lnorm(1000, meanlog = 0.1, sdlog = 0.2, shift = 5) |> 
+  exp() |>
+  hist()
+```
+
+-   Not generally recommended;
+
+-   Useful if access to data is complicated.
+
+## The Likelihood
+
+The likelihood, $L(\theta|\mathbf{y})$, is the probability of observing the gathered data under different parameter values[^6].
+
+[^6]: @etz2018
+
+<!--# choose(n, k) is the number of different ways to get k successes out of n tries -->
+
+\AddToHookNext{env/Highlighting/begin}{\tiny}
+
+```{r, echo=TRUE, fig.show='hide'}
+#8 heads out of 10 flips
+k <- 8; n <- 10
+#likelihood funtion
+likelihood <- function(p){choose(n, k)*p^k*(1-p)^(n-k)}
+#sequence of all possible probabilities
+prob_values <- seq(0, 1, length.out = 100)
+# Calculate likelihood for each p value
+likelihood_values <- sapply(prob_values, likelihood)
+```
+
+. . .
+
+```{r, fig.height=4}
+# Plot the likelihood function
+plot(prob_values, likelihood_values, type = "l", col = "blue", lwd = 2,
+     xlab = "Probability of Heads (p)", ylab = "Likelihood",
+     main = "Likelihood Function for Binomial Distribution")
+
+# Highlight the maximum likelihood estimate
+max_likelihood <- prob_values[which.max(likelihood_values)]
+abline(v = max_likelihood, col = "red", lty = 2)
+text(max_likelihood, mean(likelihood_values), 
+     labels = paste("MLE =", round(max_likelihood, 2)), 
+     pos = 2, col = "red", cex = 1.1)
+```
+
+## Intermezzo : what we have seen until now
+
+In the literature you will often see this shorthand to illustrate Bayes' theorem:
+
+$$
+p(\theta|\mathbf{y}) \propto L(\mathbf{y}|\theta)p(\theta)
+$$
+
+The posterior $p(\theta|\mathbf{y})$ is proportional to the likelihood, $L(\theta|\mathbf{y})$ (the probability of observing the gathered data under different parameter values) times the prior $p(\theta)$ (the prior probability distribution of a parameter). Sometimes, we can rather easily compute the posterior *up to a proportionality*, but we need to re-scale this to a get probability distribution.
+
+. . .
+
+This is where the evidence $p(\mathbf{y})$, also known as the marginal likelihood $\int L(\mathbf{y}|\theta)p(\theta)d\theta$, comes in to play the troublemaker.
+
+## The Evidence or Marginal Likelihood
+
+The marginal likelihood, $\int L(\mathbf{y}|\theta)p(\theta)d\theta$, is a likelihood function integrated over the parameter space $\boldsymbol{\theta}$, *i.e.*, the probability of generating the observed data for all possible values of the parameters. It is a normalizing constant to ensure that the posterior is a probability, unless used in the case of model comparison (like the Bayes factor).
+
+. . .
+
+However, calculating the marginal likelihood is not a trivial task... . We can know it analytically for some simple distributions, notably in the case of conjugate distributions, otherwise some more complex methods will be needed.
+
+## How to get to the posterior...
+
+<!--#  -->
+
+### ... Using conjugate distributions
+
+If, given a likelihood function, the prior and the posterior distribution stem from the same probability distribution family, then they are **conjugate distributions** and the prior is a **conjugate prior**.
+
+. . .
+
+Examples : \small
+
+-   The Bernoulli likelihood has a Beta conjugate prior with parameters $\alpha$, $\beta$. In this case we know that the posterior parameters will be $\alpha + k$, $\beta + n - k$; <!-- -   A Poisson likelihood has a Gamma conjugate prior -->
+-   A categorical and a multinomial likelihood both have a Dirichlet conjugate prior; <!-- -   A normal likelihood with either the mean $\mu$ or the variance $\sigma^2$ known has a Normal conjugate prior -->
+-   A normal likelihood with unknown mean $\mu$ and variance $\sigma^2$ has a Normal-inverse-gamma conjugate prior. <!-- -   and a lot of other ones... -->
+
+### ... Using conjugate distributions
+
+Historically Bayesian analysis was mostly constrained to conjugate distributions, because for them we have a closed form expression[^7] of the posterior. Conjugate distributions are convenient mathematically (and computationally), and for the sake of interpretation. Otherwise numerical integration (computing the integral through an algorithm) was another way calculate the marginal likelihood and get to the posterior. <!--# natural conjugate prior, the posterior mean = weighted combination ofthe prior mean and sample estimate -->
+
+[^7]: "Formed with constants, variables and a finite set of basic functions connected by arithmetic operations (+, −, ×, /, and integer powers) and function composition" [@closed-f2024].
+
+#### Conjugate distributions in practice i
+
+The initial elements :
+
+\AddToHookNext{env/Highlighting/begin}{\tiny}
+
+```{r, echo=TRUE}
+#8 heads out of 10 coin flips
+k <- 8
+n <- 10
+
+#likelihood funtion
+likelihood <- function(p){
+  choose(n, k)*p^k*(1-p)^(n-k)
+}
+
+#sequence of all possible probabilities
+prob_values <- seq(0, 1, length.out = 100)
+
+# Calculate likelihood for each p value
+likelihood_values <- sapply(prob_values, likelihood)
+
+# prior density Beta (4, 4) since we assume the coin is fair
+prior <- function(p){
+  dbeta(p, 4, 4)
+}
+
+prior_values <- sapply(prob_values, prior)
+
+posterior <- function(p){
+  dbeta(p, 4+k, 4+n-k)
+}
+
+posterior_values <- sapply(prob_values, posterior)
+```
+
+#### Conjugate distributions in practice ii
+
+Using the conjugate prior:
+
+```{r}
+# Plot the likelihood function
+plot(prob_values, likelihood_values*5, #scale the likelihood so we can see it on the graph
+     type = "l", lty = "longdash", col = "blue", lwd = 2, ylim = c(0,4),
+     xlab = "Probability of Heads (p)", ylab = "Density")
+lines(prob_values, prior_values, col = "red", lwd = 2, lty = "dashed")
+lines(prob_values, posterior_values, col = "purple", lwd = 2, lty = "twodash")
+legend(x = "topleft", 
+       legend = c("Prior", "Scaled likelihood", 
+                  "Posterior using conjugate prior"),
+       lty = c("longdash", "dashed", "twodash"),
+       col = c("red", "blue",  "purple"))
+```
+
+### ... Using sampling
+
+<!--# other ways to approximate the posterior exist like variationnal inference or laplace or gaussian approximation -->
+
+#### Markov chain Monte Carlo sampling
+
+<!--# Thanks to advance in computer science and hardware, sampling can be used to solve a increasing number of problems.  -->
+
+Making a first appearance in the 1950s the Markov Chain Monte Carlo (MCMC) methods and have since completely revolutionized Bayesian analysis.[^8] Those methods completely sidestep the issues concerning the marginal likelihood while also solving another problem : the *curse of dimensionality*. With high number of parameters $\boldsymbol{\theta} = \theta_1, \dots, \theta_k$, compared to a low number of data points, the data becomes sparse and reliable results become difficult to obtain.
+
+[^8]: @robert2011
+
+. . .
+
+The way around that for MCMC is to do an "intelligent" search: combine a random search with some intelligent jumping around, without having the results depending on the starting position. Let's break it down a bit...
+
+##### Monte Carlo
+
+Monte Carlo is a class of algorithm that relies on repeated random sampling to obtain numerical results. Uses random inputs and an accept/reject step before aggregating the data to get a result.
+
+. . .
+
+Let us try to evaluate $\pi$ using a Monte Carlo method.
+
+::::: columns
+::: {.column width="50%"}
+\AddToHookNext{env/Highlighting/begin}{\tiny}
+
+```{r, echo=TRUE}
+#we take a circle of radius 1 inside a square of size 2 by 2
+#first simulate uniform values along x and y axis
+N <- 50000
+x <- runif(N, -1, 1)
+y <- runif(N, -1, 1)
+
+#distance from origin
+sum_sq_xy <- sqrt(x^2+y^2)
+
+#those that are less than 1 are within the circle
+within_circle <- sum_sq_xy < 1
+
+#multiply by 4 because the proportion of area 
+#of a circle inside a square is pi/4
+4*sum(within_circle)/N
+```
+:::
+
+::: {.column width="50%"}
+$\frac{\text{area of a circle}}{\text{area of a square}}=\frac{\pi\times r^2}{s^2}$ and here $= \frac{\pi}{4}$
+
+```{r}
+library(plotrix)
+library(grid)
+plot(x[1:100], y[1:100], col = ifelse(within_circle, "red", "blue"),
+     xlim = c(-1.2, 1.2), ylim = c(-1.2,1.2), asp=1)
+draw.circle( 0, 0, 1)
+rect( -1, -1, 1, 1)
+points(0, 0, cex = 1.1, pch = 16)
+```
+:::
+:::::
+
+##### Markov Chain
+
+Markov Chain is a stochastic model[^9] <!--# is a method for predicting statistical properties of possible outcomes by accounting for random variance in one or more parameters over time. --> that describe a sequence of event in which the probability of an event depends only on the state of the previous event.
+
+[^9]: "A stochastic model predicts a set of possible outcomes weighted by their likelihoods, or probabilities" [@taylor2009].
+
+. . .
+
+For example, let's take a point that is on a line among other lines. At each step, the point can only jump up or down, one line away, with a probability of 0.5 either way. Those probabilities only depend on where the point is at the current step, so this process is a Markov Chain.
+
+::::: columns
+::: {.column width="50%"}
+![](Markov_Chain_Step_1.drawio.png)
+:::
+
+::: {.column width="50%"}
+. . .
+
+![](Markov_Chain_Step_2.drawio.png)
+:::
+:::::
+
+#### Metropolis algorithm
+
+Metropolis algorithm[^10] unfolds as follow :
+
+[^10]: @metropolis1953
+
+\small
+
+Let $f(x)$ be function proportional to the desired probability function $P(x)$: <!--# (in the case of Bayesian statistics we can just take the product of the likelihood times the prior $L(\mathbf{y}|\theta)p(\theta)$, since it is proportional to posterior distribution $p(\theta|\mathbf{y})$) -->
+
+. . .
+
+Take an arbitrary number $x_0$ and choose a symmetrical proposal function $g(x)$ which will be used to propose a new candidate $x'$ depending on the current iteration $x_i$. <!--# (here you can use a Gaussian distribution with around $\mu = x_i$) -->
+
+. . .
+
+For each iteration $i$:
+
+1.  Propose a candidate $x'$ by using the the distribution $g(x'|x_i)$,
+2.  Calculate acceptance ratio $\alpha = \frac{f(x')}{f(x_i)} = \frac{P(x')}{P(x_i)}$ (since $f$ is proportional to $P$),
+3.  Accept or reject the proposed candidate $x'$:
+    -   If $\alpha > 1$ (meaning we are moving up the distribution $f$), $x_{i+1} = x'$,
+    -   Otherwise, generate a random number form a uniform distribution $u \in [0, 1]$:
+        -   If $u \leq \alpha$ then $x_{i+1} = x'$,
+        -   If $u > \alpha$ then $x_{i+1} = x_i$.
+
+##### Metropolis algorithm in practice i
+
+The actual algorithm:
+
+\AddToHookNext{env/Highlighting/begin}{\tiny}
+
+```{r, echo=TRUE}
+# the prior times the likelihood is proportional to the posterior
+f_x <- function(x){likelihood(x) * prior(x)}
+
+#normal is the proposal function
+g_x <- function(x){rnorm(1, mean = x, sd = 0.1)}
+
+metropolis_algo <- function(x_0, nb_iter){
+  #one run for a parameter is called a chain
+  chain <- vector(length = nb_iter) 
+  chain[1] <- x_0
+  for (i in 1:nb_iter) {
+    candidate_x <- g_x(chain[i]) #chain[i] equivalant to x_i
+    alpha <- f_x(candidate_x)/f_x(chain[i])
+    if(alpha > 1){chain[i+1] = candidate_x}
+    else{u <- runif(1)
+      if(u <= alpha){chain[i+1] = candidate_x}
+      else{chain[i+1] = chain[i]}
+    }
+  }
+  return(chain)
+}
+```
+
+##### Metropolis algorithm in practice ii
+
+A (Markov) chain is one run of a particular parameter through the algorithm. We usually run multiple chain with different starting values. The first part of the chains are usually discarded, as they are biased by the starting values. This is called the burn-in period.
+
+```{r, fig.height=4}
+full_chain <- metropolis_algo(0.1, 5000)
+#get rid of burn-in period
+post_dist_mcmc <- full_chain[-c(1:2500)]
+
+plot(full_chain, type = "l",
+     ylab = "chain for p",
+     xlab = "iterations", col = "darkgreen")
+rect(-100,0,2500,1,col = rgb(0.5,0.5,0.5,1/4))
+```
+
+##### Metropolis algorithm in practice iii
+
+Adding the MCMC results from the Metropolis algorithm:
+
+```{r}
+# Plot the likelihood function
+plot(prob_values, likelihood_values*5, #scale the likelihood so we can see it on the graph
+     type = "l", lty = "longdash", col = "blue", lwd = 2, ylim = c(0,4),
+     xlab = "Probability of Heads (p)", ylab = "Density")
+lines(prob_values, prior_values, col = "red", lwd = 2, lty = "dashed")
+lines(prob_values, posterior_values, col = "purple", lwd = 2, lty = "twodash")
+lines(density(post_dist_mcmc), col = "darkgreen", lwd = 2)
+legend(x = "topleft", 
+       legend = c("Prior", "Scaled likelihood", 
+                  "Posterior using conjugate prior",
+                  "Posterior using Metropolis algorithm"),
+       lty = c("longdash", "dashed", "twodash", "solid"),
+       col = c("red", "blue",  "purple", "darkgreen"))
+```
+
+#### Other MCMC algorithms
+
+Metropolis algorithm is simple but suffers serious drawbacks from complicated models. But it is the building block for more advanced algorithm like:
+
+-   Metropolis-Hastings algorithm[^11] : generalization of the Metropolis algorithm where the proposal function doesn't have to be symmetric;
+-   Gibbs sampler[^12]: useful when the joint distribution is not known explicitly but the conditional distribution of each parameter is known;
+-   Hamiltonian Monte-Carlo[^13]: utilize the local geometry of the target density to move to distant states while maintaining high probability of acceptance.
+
+[^11]: @hastings1970
+
+[^12]: @geman1984
+
+[^13]: @duane1987
+
+## The Posterior
+
+The result of updating the prior probability with the data gathered. We can use this distribution a number of way, the most used one are the credible interval (here we use a 95% CrI):
+
+\vspace{1em}
+
+. . .
+
+::::: columns
+::: {.column width="50%"}
+Equal tail interval, with the probability of being below the interval equal to the probability of being above it:
+
+```{r}
+library(bayestestR)
+CI_ETI <- ci(distribution_beta(1000, 4+k, 4+n-k), method = "ETI")
+# Plot the posterior function
+plot(prob_values, posterior_values, #scale the likelihood so we can see it on the graph
+     type = "l", col = "purple", lwd = 2, ylim = c(0,4),
+     xlab = "Probability of Heads (p)", ylab = "Posterior distribution density")
+abline(v = CI_ETI[2], col = "orange", lwd = 2)
+abline(v = CI_ETI[3], col = "orange", lwd = 2)
+median_post <- (4+k-1/3)/(4+k+4+n-k-2/3) #median
+abline(v = median_post, col = "red", lwd = 2)
+```
+:::
+
+::: {.column width="50%"}
+. . .
+
+Highest posterior density interval, which is the narrowest interval:
+
+\vspace{2em}
+
+```{r}
+library(bayestestR)
+CI_HDI <- ci(distribution_beta(1000, 4+k, 4+n-k), method = "HDI")
+# Plot the posterior function
+plot(prob_values, posterior_values, #scale the likelihood so we can see it on the graph
+     type = "l", col = "purple", lwd = 2, ylim = c(0,4),
+     xlab = "Probability of Heads (p)", ylab = "Posterior distribution density")
+abline(v = CI_HDI[2], col = "orange", lwd = 2)
+abline(v = CI_HDI[3], col = "orange", lwd = 2)
+horiz_line <- mean(c(dbeta(as.numeric(CI_HDI[2]), 4+k, 4+n-k),
+  dbeta(as.numeric(CI_HDI[3]), 4+k, 4+n-k))) #for the horizontal line
+abline(h = horiz_line, col = "red", lwd = 2)
+```
+:::
+:::::
+
+# Conclusion
+
+## A quick recap
+
+## Advantages and Disadvantages
+
+::::: columns
+::: {.column width="50%"}
+Advantages:
+
+-   Reasoning is more intuitive;
+
+-   Incorporate prior information;
+
+-   Can use the posterior distribution to directly calculate the probability of different hypothesis;
+
+-   Can work with smaller amounts of data.
+:::
+
+::: {.column width="50%"}
+Disadvantages:
+
+-   For a Bayesian analysis to be reproducible, you will need to mention all elements of a Bayesian analysis;
+
+-   Subjectivity linked to the choice of priors;
+
+-   With small amounts of data, the choice of prior will have a big influence;
+
+-   It can be difficult to build a complex Bayesian model and come up with the appropriate priors.
+:::
+:::::
+
+## Resources
+
+### Where to get started ?
+
+. . .
+
+Summer school in Potsdam, Germany [@theeigh], targeted toward cognitive science. You can find some material from the previous years here linked on the website. The same people organizing the summer school also have an online book [@vasishth].
+
+. . .
+
+Statistical rethinking [@mcelreath] is a good statistics book for applied researchers with freely available lectures on YouTube [@mcelreatha]. <!--#but is written by someone who studies human evolutionary ecology so the examples may be less relevant. --> To check with the help of the bookdown from @kurz, in order to have the models refit with `brms` [@bürkner2021], `ggplot2` [@wickham2016] and `tidyverse` [@wickham2019].
+
+### In R
+
+Both of the packages bellow use **Stan** a probabilistic programming language written in C++ specifically made for the Bayesian statistical modelling:
+
+-   Package `RStan` [@carpenter2017], a R interface to Stan (need to have a file with R code and one with Stan code). A tutorial for psychologist and linguist is available here : @sorensen2015.
+
+-   Package `brms` [@bürkner2021] (no need for a Stan file) with a writing format closer to `lme4` [@bates2015] mixed effects models format.
+
+<!--# Outside of R there is of course Winbugs, SAS, Python (PyStan) -->
+
+### Some Guidelines
+
+Primer on Bayesian statistics @vandeschoot2021 also has an updated version of the WAMBS (when to Worry and how to Avoid the Misuse of Bayesian Statistics) checklist @depaoli2017.
+
+Bayesian analysis reporting guidelines (BARG) @kruschke2021.
+
+# References {.allowframebreaks}
